@@ -148,6 +148,9 @@ RUN set -ex \
 			echo 'include=etc/php-fpm.d/*.conf'; \
 		} | tee php-fpm.conf; \
 	fi \
+        && if [ ${PHP_VERSION%.*} != '5.3' ];then \
+                clear_env='clear_env = no'; \
+        fi \
 	&& { \
 		echo '[global]'; \
 		echo 'error_log = /proc/self/fd/2'; \
@@ -166,7 +169,7 @@ RUN set -ex \
 		echo 'daemonize = no'; \
 		echo; \
 		echo '[www]'; \
-		echo 'listen = [::]:9000'; \
+		echo 'listen = 9000'; \
 	} | tee php-fpm.d/zz-docker.conf
 
 EXPOSE 9000

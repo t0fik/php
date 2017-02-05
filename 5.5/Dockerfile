@@ -45,8 +45,8 @@ ENV PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
 ENV GPG_KEYS 0B96609E270F565C13292B24C13C70B87267B52D 0BD78B5F97500D450838F95DFE857D9A90D90EC1
 
 ENV PHP_VERSION 5.5.38
-ENV PHP_URL="https://secure.php.net/get/php-5.5.38.tar.bz2/from/this/mirror" PHP_ASC_URL="https://secure.php.net/get/php-5.5.38.tar.bz2.asc/from/this/mirror"
-ENV PHP_SHA256="473c81ebb2e48ca468caee031762266651843d7227c18a824add9b07b9393e38" PHP_MD5="312244a0eecad602a1555ed2434e223f"
+ENV PHP_URL="https://secure.php.net/get/php-5.5.38.tar.xz/from/this/mirror" PHP_ASC_URL="https://secure.php.net/get/php-5.5.38.tar.xz.asc/from/this/mirror"
+ENV PHP_SHA256="cb527c44b48343c8557fe2446464ff1d4695155a95601083e5d1f175df95580f" PHP_MD5="72302e26f153687e2ca922909f927443"
 
 RUN set -xe; \
 	\

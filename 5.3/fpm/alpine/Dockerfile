@@ -53,6 +53,8 @@ ENV GPG_KEYS 0A95E9A026542D53835E3F3A7DEC4E69FC9C83D7 0B96609E270F565C13292B24C1
 ENV PHP_VERSION 5.3.29
 ENV PHP_URL="https://secure.php.net/get/php-5.3.29.tar.xz/from/this/mirror" PHP_ASC_URL="https://secure.php.net/get/php-5.3.29.tar.xz.asc/from/this/mirror"
 ENV PHP_SHA256="" PHP_MD5="dcff9c881fe436708c141cfc56358075"
+ENV PHP_ARCHIVE php-5.3.29.tar.xz
+
 
 RUN set -xe; \
 	\
@@ -64,22 +66,22 @@ RUN set -xe; \
 	mkdir -p /usr/src; \
 	cd /usr/src; \
 	\
-	wget -O php.tar.xz "$PHP_URL"; \
+	wget -O $PHP_ARCHIVE "$PHP_URL"; \
 	\
 	if [ -n "$PHP_SHA256" ]; then \
-		echo "$PHP_SHA256 *php.tar.xz" | sha256sum -c -; \
+		echo "$PHP_SHA256 *$PHP_ARCHIVE" | sha256sum -c -; \
 	fi; \
 	if [ -n "$PHP_MD5" ]; then \
-		echo "$PHP_MD5 *php.tar.xz" | md5sum -c -; \
+		echo "$PHP_MD5 *$PHP_ARCHIVE" | md5sum -c -; \
 	fi; \
 	\
 	if [ -n "$PHP_ASC_URL" ]; then \
-		wget -O php.tar.xz.asc "$PHP_ASC_URL"; \
+		wget -O $PHP_ARCHIVE.asc "$PHP_ASC_URL"; \
 		export GNUPGHOME="$(mktemp -d)"; \
 		for key in $GPG_KEYS; do \
 			gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
 		done; \
-		gpg --batch --verify php.tar.xz.asc php.tar.xz; \
+		gpg --batch --verify $PHP_ARCHIVE.asc $PHP_ARCHIVE; \
 		rm -r "$GNUPGHOME"; \
 	fi; \
 	\
@@ -99,7 +101,7 @@ RUN set -xe \
 	&& export CFLAGS="$PHP_CFLAGS" \
 		CPPFLAGS="$PHP_CPPFLAGS" \
 		LDFLAGS="$PHP_LDFLAGS" \
-	&& docker-php-source extract \
+	&& docker-php-source extract\
 	&& cd /usr/src/php \
 	&& ./configure \
 		--with-config-file-path="$PHP_INI_DIR" \
@@ -158,6 +160,9 @@ RUN set -ex \
 			echo 'include=etc/php-fpm.d/*.conf'; \
 		} | tee php-fpm.conf; \
 	fi \
+        && if [ ${PHP_VERSION%.*} != '5.3' ];then \
+                clear_env='clear_env = no'; \
+        fi \
 	&& { \
 		echo '[global]'; \
 		echo 'error_log = /proc/self/fd/2'; \
@@ -176,7 +181,7 @@ RUN set -ex \
 		echo 'daemonize = no'; \
 		echo; \
 		echo '[www]'; \
-		echo 'listen = [::]:9000'; \
+		echo 'listen = 9000'; \
 	} | tee php-fpm.d/zz-docker.conf
 
 EXPOSE 9000

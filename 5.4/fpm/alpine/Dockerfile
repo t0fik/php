@@ -101,7 +101,7 @@ RUN set -xe \
 	&& export CFLAGS="$PHP_CFLAGS" \
 		CPPFLAGS="$PHP_CPPFLAGS" \
 		LDFLAGS="$PHP_LDFLAGS" \
-	&& docker-php-source extract "$PHP_ARCHIVE"\
+	&& docker-php-source extract\
 	&& cd /usr/src/php \
 	&& ./configure \
 		--with-config-file-path="$PHP_INI_DIR" \
@@ -160,6 +160,9 @@ RUN set -ex \
 			echo 'include=etc/php-fpm.d/*.conf'; \
 		} | tee php-fpm.conf; \
 	fi \
+        && if [ ${PHP_VERSION%.*} != '5.3' ];then \
+                clear_env='clear_env = no'; \
+        fi \
 	&& { \
 		echo '[global]'; \
 		echo 'error_log = /proc/self/fd/2'; \
