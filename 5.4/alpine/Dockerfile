@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM debian:jessie
+FROM alpine:3.4
 
 # persistent / runtime deps
 ENV PHPIZE_DEPS \
@@ -14,17 +14,22 @@ ENV PHPIZE_DEPS \
 		gcc \
 		libc-dev \
 		make \
-		pkg-config \
+		pkgconf \
 		re2c
-RUN apt-get update && apt-get install -y \
-		$PHPIZE_DEPS \
+RUN apk add --no-cache --virtual .persistent-deps \
 		ca-certificates \
 		curl \
-		libedit2 \
-		libsqlite3-0 \
-		libxml2 \
-		xz-utils \
-	--no-install-recommends && rm -r /var/lib/apt/lists/*
+		tar \
+		xz
+
+# ensure www-data user exists
+RUN set -x \
+	&& addgroup -g 82 -S www-data \
+	&& adduser -u 82 -D -S -G www-data www-data
+# 82 is the standard uid/gid for "www-data" in Alpine
+# http://git.alpinelinux.org/cgit/aports/tree/main/apache2/apache2.pre-install?h=v3.3.2
+# http://git.alpinelinux.org/cgit/aports/tree/main/lighttpd/lighttpd.pre-install?h=v3.3.2
+# http://git.alpinelinux.org/cgit/aports/tree/main/nginx-initscripts/nginx-initscripts.pre-install?h=v3.3.2
 
 ENV PHP_INI_DIR /usr/local/etc/php
 RUN mkdir -p $PHP_INI_DIR/conf.d
@@ -50,12 +55,10 @@ ENV PHP_SHA256="" PHP_MD5=""
 
 RUN set -xe; \
 	\
-	fetchDeps=' \
-		wget \
-	'; \
-	apt-get update; \
-	apt-get install -y --no-install-recommends $fetchDeps; \
-	rm -rf /var/lib/apt/lists/*; \
+	apk add --no-cache --virtual .fetch-deps \
+		gnupg \
+		openssl \
+	; \
 	\
 	mkdir -p /usr/src; \
 	cd /usr/src; \
@@ -79,20 +82,18 @@ RUN set -xe; \
 		rm -r "$GNUPGHOME"; \
 	fi; \
 	\
-	apt-get purge -y --auto-remove $fetchDeps
+	apk del .fetch-deps
 
 COPY docker-php-source /usr/local/bin/
 
 RUN set -xe \
-	&& buildDeps=" \
-		$PHP_EXTRA_BUILD_DEPS \
-		libcurl4-openssl-dev \
+	&& apk add --no-cache --virtual .build-deps \
+		$PHPIZE_DEPS \
+		curl-dev \
 		libedit-dev \
-		libsqlite3-dev \
-		libssl-dev \
 		libxml2-dev \
-	" \
-	&& apt-get update && apt-get install -y $buildDeps --no-install-recommends && rm -rf /var/lib/apt/lists/* \
+		openssl-dev \
+		sqlite-dev \
 	\
 	&& export CFLAGS="$PHP_CFLAGS" \
 		CPPFLAGS="$PHP_CPPFLAGS" \
@@ -118,13 +119,22 @@ RUN set -xe \
 		--with-zlib \
 		\
 		$PHP_EXTRA_CONFIGURE_ARGS \
-	&& make -j "$(nproc)" \
+	&& make -j "$(getconf _NPROCESSORS_ONLN)" \
 	&& make install \
-	&& { find /usr/local/bin /usr/local/sbin -type f -executable -exec strip --strip-all '{}' + || true; } \
+	&& { find /usr/local/bin /usr/local/sbin -type f -perm +0111 -exec strip --strip-all '{}' + || true; } \
 	&& make clean \
 	&& docker-php-source delete \
 	\
-	&& apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $buildDeps
+	&& runDeps="$( \
+		scanelf --needed --nobanner --recursive /usr/local \
+			| awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
+			| sort -u \
+			| xargs -r apk info --installed \
+			| sort -u \
+	)" \
+	&& apk add --no-cache --virtual .php-rundeps $runDeps \
+	\
+	&& apk del .build-deps
 
 COPY docker-php-ext-* docker-php-entrypoint /usr/local/bin/
 

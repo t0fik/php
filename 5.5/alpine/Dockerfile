@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM debian:jessie
+FROM alpine:3.4
 
 # persistent / runtime deps
 ENV PHPIZE_DEPS \
@@ -14,17 +14,22 @@ ENV PHPIZE_DEPS \
 		gcc \
 		libc-dev \
 		make \
-		pkg-config \
+		pkgconf \
 		re2c
-RUN apt-get update && apt-get install -y \
-		$PHPIZE_DEPS \
+RUN apk add --no-cache --virtual .persistent-deps \
 		ca-certificates \
 		curl \
-		libedit2 \
-		libsqlite3-0 \
-		libxml2 \
-		xz-utils \
-	--no-install-recommends && rm -r /var/lib/apt/lists/*
+		tar \
+		xz
+
+# ensure www-data user exists
+RUN set -x \
+	&& addgroup -g 82 -S www-data \
+	&& adduser -u 82 -D -S -G www-data www-data
+# 82 is the standard uid/gid for "www-data" in Alpine
+# http://git.alpinelinux.org/cgit/aports/tree/main/apache2/apache2.pre-install?h=v3.3.2
+# http://git.alpinelinux.org/cgit/aports/tree/main/lighttpd/lighttpd.pre-install?h=v3.3.2
+# http://git.alpinelinux.org/cgit/aports/tree/main/nginx-initscripts/nginx-initscripts.pre-install?h=v3.3.2
 
 ENV PHP_INI_DIR /usr/local/etc/php
 RUN mkdir -p $PHP_INI_DIR/conf.d
@@ -42,20 +47,18 @@ ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2"
 ENV PHP_CPPFLAGS="$PHP_CFLAGS"
 ENV PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
 
-ENV GPG_KEYS F38252826ACD957EF380D39F2F7956BC5DA04B5D
+ENV GPG_KEYS 0B96609E270F565C13292B24C13C70B87267B52D 0BD78B5F97500D450838F95DFE857D9A90D90EC1
 
-ENV PHP_VERSION 5.4.45
-ENV PHP_URL="" PHP_ASC_URL=""
-ENV PHP_SHA256="" PHP_MD5=""
+ENV PHP_VERSION 5.5.38
+ENV PHP_URL="https://secure.php.net/get/php-5.5.38.tar.bz2/from/this/mirror" PHP_ASC_URL="https://secure.php.net/get/php-5.5.38.tar.bz2.asc/from/this/mirror"
+ENV PHP_SHA256="473c81ebb2e48ca468caee031762266651843d7227c18a824add9b07b9393e38" PHP_MD5="312244a0eecad602a1555ed2434e223f"
 
 RUN set -xe; \
 	\
-	fetchDeps=' \
-		wget \
-	'; \
-	apt-get update; \
-	apt-get install -y --no-install-recommends $fetchDeps; \
-	rm -rf /var/lib/apt/lists/*; \
+	apk add --no-cache --virtual .fetch-deps \
+		gnupg \
+		openssl \
+	; \
 	\
 	mkdir -p /usr/src; \
 	cd /usr/src; \
@@ -79,20 +82,18 @@ RUN set -xe; \
 		rm -r "$GNUPGHOME"; \
 	fi; \
 	\
-	apt-get purge -y --auto-remove $fetchDeps
+	apk del .fetch-deps
 
 COPY docker-php-source /usr/local/bin/
 
 RUN set -xe \
-	&& buildDeps=" \
-		$PHP_EXTRA_BUILD_DEPS \
-		libcurl4-openssl-dev \
+	&& apk add --no-cache --virtual .build-deps \
+		$PHPIZE_DEPS \
+		curl-dev \
 		libedit-dev \
-		libsqlite3-dev \
-		libssl-dev \
 		libxml2-dev \
-	" \
-	&& apt-get update && apt-get install -y $buildDeps --no-install-recommends && rm -rf /var/lib/apt/lists/* \
+		openssl-dev \
+		sqlite-dev \
 	\
 	&& export CFLAGS="$PHP_CFLAGS" \
 		CPPFLAGS="$PHP_CPPFLAGS" \
@@ -118,13 +119,22 @@ RUN set -xe \
 		--with-zlib \
 		\
 		$PHP_EXTRA_CONFIGURE_ARGS \
-	&& make -j "$(nproc)" \
+	&& make -j "$(getconf _NPROCESSORS_ONLN)" \
 	&& make install \
-	&& { find /usr/local/bin /usr/local/sbin -type f -executable -exec strip --strip-all '{}' + || true; } \
+	&& { find /usr/local/bin /usr/local/sbin -type f -perm +0111 -exec strip --strip-all '{}' + || true; } \
 	&& make clean \
 	&& docker-php-source delete \
 	\
-	&& apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $buildDeps
+	&& runDeps="$( \
+		scanelf --needed --nobanner --recursive /usr/local \
+			| awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
+			| sort -u \
+			| xargs -r apk info --installed \
+			| sort -u \
+	)" \
+	&& apk add --no-cache --virtual .php-rundeps $runDeps \
+	\
+	&& apk del .build-deps
 
 COPY docker-php-ext-* docker-php-entrypoint /usr/local/bin/
 
