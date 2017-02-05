@@ -16,12 +16,28 @@ declare -A gpgKeys=(
 	# jpauli & tyrael
 	# https://secure.php.net/downloads.php#gpg-5.6
 	[5.6]='0BD78B5F97500D450838F95DFE857D9A90D90EC1 6E4F6AB321FDC07F2C332E3AC2BF0BC433CFC8B3'
+
+        # https://wiki.php.net/todo/php55
+	# jpauli & tyrael
+	# https://secure.php.net/downloads.php#gpg-5.5
+	[5.5]='0B96609E270F565C13292B24C13C70B87267B52D 0BD78B5F97500D450838F95DFE857D9A90D90EC1'
+
+        # https://wiki.php.net/todo/php54
+	# jpauli & tyrael
+	# https://secure.php.net/downloads.php#gpg-5.4
+	[5.4]='F38252826ACD957EF380D39F2F7956BC5DA04B5D'
+
+        # https://wiki.php.net/todo/php53
+	# jpauli & tyrael
+	# https://secure.php.net/downloads.php#gpg-5.3
+	[5.3]='0A95E9A026542D53835E3F3A7DEC4E69FC9C83D7 0B96609E270F565C13292B24C13C70B87267B52D'
 )
 # see https://secure.php.net/downloads.php
 
 cd "$(dirname "$(readlink -f "$BASH_SOURCE")")"
 
 versions=( "$@" )
+
 if [ ${#versions[@]} -eq 0 ]; then
 	versions=( */ )
 fi
@@ -41,13 +57,14 @@ generated_warning() {
 travisEnv=
 for version in "${versions[@]}"; do
 	rcVersion="${version%-rc}"
-
 	# scrape the relevant API based on whether we're looking for pre-releases
-	apiUrl="https://secure.php.net/releases/index.php?json&max=100&version=${rcVersion%%.*}"
+	apiUrl="https://secure.php.net/releases/index.php?json&max=500&version=${rcVersion%%.*}"
+        echo $apiUrl
 	apiJqExpr='
 		(keys[] | select(startswith("'"$rcVersion"'."))) as $version
 		| [ $version, (
 			.[$version].source[]
+                        | select ( .filename != null )
 			| select(.filename | endswith(".xz"))
 			|
 				"https://secure.php.net/get/" + .filename + "/from/this/mirror",
@@ -77,6 +94,7 @@ for version in "${versions[@]}"; do
 			| sort -rV
 	) )
 	unset IFS
+echo "possibles=${possibles[*]}"
 
 	if [ "${#possibles[@]}" -eq 0 ]; then
 		echo >&2
