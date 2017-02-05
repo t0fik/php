@@ -101,7 +101,7 @@ RUN set -xe \
 	&& export CFLAGS="$PHP_CFLAGS" \
 		CPPFLAGS="$PHP_CPPFLAGS" \
 		LDFLAGS="$PHP_LDFLAGS" \
-	&& docker-php-source extract \
+	&& docker-php-source extract "$PHP_ARCHIVE"\
 	&& cd /usr/src/php \
 	&& ./configure \
 		--with-config-file-path="$PHP_INI_DIR" \
