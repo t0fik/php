@@ -68,6 +68,7 @@ for version in "${versions[@]}"; do
                         | select ( .filename != null )
 			| select(.filename | endswith("'"$archive"'"))
 			|
+                                .filename,
 				"https://secure.php.net/get/" + .filename + "/from/this/mirror",
 				"https://secure.php.net/get/" + .filename + ".asc/from/this/mirror",
 				.sha256 // "",
@@ -95,7 +96,6 @@ for version in "${versions[@]}"; do
 			| sort -rV
 	) )
 	unset IFS
-echo "possibles=${possibles[*]}"
 
 	if [ "${#possibles[@]}" -eq 0 ]; then
 		echo >&2
@@ -108,10 +108,11 @@ echo "possibles=${possibles[*]}"
 	#   see the "apiJqExpr" values above for more details
 	eval "possi=( ${possibles[0]} )"
 	fullVersion="${possi[0]}"
-	url="${possi[1]}"
-	ascUrl="${possi[2]}"
-	sha256="${possi[3]}"
-	md5="${possi[4]}"
+        filename="${possi[1]}"
+	url="${possi[2]}"
+	ascUrl="${possi[3]}"
+	sha256="${possi[4]}"
+	md5="${possi[5]}"
 
 	gpgKey="${gpgKeys[$rcVersion]}"
 	if [ -z "$gpgKey" ]; then
@@ -183,6 +184,7 @@ echo "possibles=${possibles[*]}"
 			-e 's!%%PHP_ASC_URL%%!'"$ascUrl"'!' \
 			-e 's!%%PHP_SHA256%%!'"$sha256"'!' \
 			-e 's!%%PHP_MD5%%!'"$md5"'!' \
+                        -e 's!%%PHP_ARCHIVE%%!'"$filename"'!' \
 			"${dockerfiles[@]}"
 	)
 
