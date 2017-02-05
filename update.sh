@@ -127,6 +127,7 @@ for version in "${versions[@]}"; do
 	fi
 
 	dockerfiles=()
+        scripts=()
 
 	{ generated_warning; cat Dockerfile-debian.template; } > "$version/Dockerfile"
 	cp -v \
@@ -135,6 +136,7 @@ for version in "${versions[@]}"; do
 		docker-php-source \
 		"$version/"
 	dockerfiles+=( "$version/Dockerfile" )
+        scripts+=( "$version/docker-php-source" )
 
 	if [ -d "$version/alpine" ]; then
 		{ generated_warning; cat Dockerfile-alpine.template; } > "$version/alpine/Dockerfile"
@@ -144,6 +146,7 @@ for version in "${versions[@]}"; do
 			docker-php-source \
 			"$version/alpine/"
 		dockerfiles+=( "$version/alpine/Dockerfile" )
+                scripts+=( "$version/alpine/docker-php-source" )
 	fi
 
 	for target in \
@@ -173,6 +176,7 @@ for version in "${versions[@]}"; do
 			docker-php-source \
 			"$version/$target/"
 		dockerfiles+=( "$version/$target/Dockerfile" )
+		scripts+=( "$version/$target/docker-php-source" )
 	done
 
 	(
@@ -186,6 +190,9 @@ for version in "${versions[@]}"; do
 			-e 's!%%PHP_MD5%%!'"$md5"'!' \
                         -e 's!%%PHP_ARCHIVE%%!'"$filename"'!' \
 			"${dockerfiles[@]}"
+                sed -ri \
+                        -e 's!%%PHP_ARCHIVE%%!'"$filename"'!' \
+                        "${scripts[@]}"
 	)
 
 	# update entrypoint commands
