@@ -59,13 +59,14 @@ for version in "${versions[@]}"; do
 	rcVersion="${version%-rc}"
 	# scrape the relevant API based on whether we're looking for pre-releases
 	apiUrl="https://secure.php.net/releases/index.php?json&max=500&version=${rcVersion%%.*}"
-        echo $apiUrl
+        archive='.xz'
+        [[ $rcVersion = '5.4' ]] && archive='.bz2'
 	apiJqExpr='
 		(keys[] | select(startswith("'"$rcVersion"'."))) as $version
 		| [ $version, (
 			.[$version].source[]
                         | select ( .filename != null )
-			| select(.filename | endswith(".xz"))
+			| select(.filename | endswith("'"$archive"'"))
 			|
 				"https://secure.php.net/get/" + .filename + "/from/this/mirror",
 				"https://secure.php.net/get/" + .filename + ".asc/from/this/mirror",
