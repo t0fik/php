@@ -53,6 +53,8 @@ ENV GPG_KEYS A917B1ECDA84AEC2B568FED6F50ABC807BD5DCD0 528995BFEDFBA7191D46839EF9
 ENV PHP_VERSION 7.1.1
 ENV PHP_URL="https://secure.php.net/get/php-7.1.1.tar.xz/from/this/mirror" PHP_ASC_URL="https://secure.php.net/get/php-7.1.1.tar.xz.asc/from/this/mirror"
 ENV PHP_SHA256="b3565b0c1441064eba204821608df1ec7367abff881286898d900c2c2a5ffe70" PHP_MD5="65eef256f6e7104a05361939f5e23ada"
+ENV PHP_ARCHIVE php-7.1.1.tar.xz
+
 
 RUN set -xe; \
 	\
@@ -64,22 +66,22 @@ RUN set -xe; \
 	mkdir -p /usr/src; \
 	cd /usr/src; \
 	\
-	wget -O php.tar.xz "$PHP_URL"; \
+	wget -O $PHP_ARCHIVE "$PHP_URL"; \
 	\
 	if [ -n "$PHP_SHA256" ]; then \
-		echo "$PHP_SHA256 *php.tar.xz" | sha256sum -c -; \
+		echo "$PHP_SHA256 *$PHP_ARCHIVE" | sha256sum -c -; \
 	fi; \
 	if [ -n "$PHP_MD5" ]; then \
-		echo "$PHP_MD5 *php.tar.xz" | md5sum -c -; \
+		echo "$PHP_MD5 *$PHP_ARCHIVE" | md5sum -c -; \
 	fi; \
 	\
 	if [ -n "$PHP_ASC_URL" ]; then \
-		wget -O php.tar.xz.asc "$PHP_ASC_URL"; \
+		wget -O $PHP_ARCHIVE.asc "$PHP_ASC_URL"; \
 		export GNUPGHOME="$(mktemp -d)"; \
 		for key in $GPG_KEYS; do \
 			gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
 		done; \
-		gpg --batch --verify php.tar.xz.asc php.tar.xz; \
+		gpg --batch --verify $PHP_ARCHIVE.asc $PHP_ARCHIVE; \
 		rm -r "$GNUPGHOME"; \
 	fi; \
 	\
@@ -99,7 +101,7 @@ RUN set -xe \
 	&& export CFLAGS="$PHP_CFLAGS" \
 		CPPFLAGS="$PHP_CPPFLAGS" \
 		LDFLAGS="$PHP_LDFLAGS" \
-	&& docker-php-source extract \
+	&& docker-php-source extract\
 	&& cd /usr/src/php \
 	&& ./configure \
 		--with-config-file-path="$PHP_INI_DIR" \
@@ -158,6 +160,9 @@ RUN set -ex \
 			echo 'include=etc/php-fpm.d/*.conf'; \
 		} | tee php-fpm.conf; \
 	fi \
+        && if [ ${PHP_VERSION%.*} != '5.3' ];then \
+                clear_env='clear_env = no'; \
+        fi \
 	&& { \
 		echo '[global]'; \
 		echo 'error_log = /proc/self/fd/2'; \
@@ -166,7 +171,7 @@ RUN set -ex \
 		echo '; if we send this to /proc/self/fd/1, it never appears'; \
 		echo 'access.log = /proc/self/fd/2'; \
 		echo; \
-		echo 'clear_env = no'; \
+		echo "$clear_env"; \
 		echo; \
 		echo '; Ensure worker stdout and stderr are sent to the main error log.'; \
 		echo 'catch_workers_output = yes'; \
@@ -176,7 +181,7 @@ RUN set -ex \
 		echo 'daemonize = no'; \
 		echo; \
 		echo '[www]'; \
-		echo 'listen = [::]:9000'; \
+		echo 'listen = 9000'; \
 	} | tee php-fpm.d/zz-docker.conf
 
 EXPOSE 9000

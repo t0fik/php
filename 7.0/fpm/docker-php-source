@@ -3,6 +3,9 @@ set -e
 
 dir=/usr/src/php
 
+PHP_ARCHIVE=php-7.0.15.tar.xz
+
+
 usage() {
 	echo "usage: $0 COMMAND"
 	echo
@@ -18,7 +21,7 @@ case "$1" in
 	extract)
 		mkdir -p "$dir"
 		if [ ! -f "$dir/.docker-extracted" ]; then
-			tar -Jxf /usr/src/php.tar.xz -C "$dir" --strip-components=1
+			tar -xf /usr/src/${PHP_ARCHIVE} -C "$dir" --strip-components=1
 			touch "$dir/.docker-extracted"
 		fi
 		;;

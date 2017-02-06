@@ -47,6 +47,7 @@ ENV GPG_KEYS 1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763 6E4F6AB321FDC07F2C332E3AC2
 ENV PHP_VERSION 7.0.15
 ENV PHP_URL="https://secure.php.net/get/php-7.0.15.tar.xz/from/this/mirror" PHP_ASC_URL="https://secure.php.net/get/php-7.0.15.tar.xz.asc/from/this/mirror"
 ENV PHP_SHA256="300364d57fc4a6176ff7d52d390ee870ab6e30df121026649f8e7e0b9657fe93" PHP_MD5="dca23412f3e3b3987e582091b751925d"
+ENV PHP_ARCHIVE php-7.0.15.tar.xz
 
 RUN set -xe; \
 	\
@@ -60,22 +61,22 @@ RUN set -xe; \
 	mkdir -p /usr/src; \
 	cd /usr/src; \
 	\
-	wget -O php.tar.xz "$PHP_URL"; \
+	wget -O $PHP_ARCHIVE "$PHP_URL"; \
 	\
 	if [ -n "$PHP_SHA256" ]; then \
-		echo "$PHP_SHA256 *php.tar.xz" | sha256sum -c -; \
+		echo "$PHP_SHA256 *$PHP_ARCHIVE" | sha256sum -c -; \
 	fi; \
 	if [ -n "$PHP_MD5" ]; then \
-		echo "$PHP_MD5 *php.tar.xz" | md5sum -c -; \
+		echo "$PHP_MD5 *$PHP_ARCHIVE" | md5sum -c -; \
 	fi; \
 	\
 	if [ -n "$PHP_ASC_URL" ]; then \
-		wget -O php.tar.xz.asc "$PHP_ASC_URL"; \
+		wget -O $PHP_ARCHIVE.asc "$PHP_ASC_URL"; \
 		export GNUPGHOME="$(mktemp -d)"; \
 		for key in $GPG_KEYS; do \
 			gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
 		done; \
-		gpg --batch --verify php.tar.xz.asc php.tar.xz; \
+		gpg --batch --verify $PHP_ARCHIVE.asc $PHP_ARCHIVE; \
 		rm -r "$GNUPGHOME"; \
 	fi; \
 	\
