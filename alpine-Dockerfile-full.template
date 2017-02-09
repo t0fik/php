@@ -1,4 +1,4 @@
-FROM docker.jdsieci.pl/php-fpm:5.3.29-minimal
+FROM docker.jdsieci.pl/php-fpm:%%PHP_VERSION%%-minimal
 
 RUN apk add --no-cache --virtual .persistent-deps \
 		bzip2
@@ -14,9 +14,16 @@ RUN apk add --no-cache --virtual .build-deps \
 		gmp-dev \
 		bzip2-dev \
 		libxml2-dev \
+		gettext-dev \
+		postgresql-dev \
+		recode-dev \
+		enchant-dev \
+		icu-dev \
 	&& docker-php-ext-install iconv mcrypt \
-		exif bz2 gmp bcmath soap\
-	&& docker-php-ext-configure gd --with-freetype-dir=/usr/include/ \
+		exif bz2 gmp bcmath soap gettext \
+		pgsql pdo_pgsql recode dba calendar \
+		intl enchant \
+	&& docker-php-ext-configure gd --enable-gd-native-ttf --with-freetype-dir=/usr/include/ \
 		--with-png-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
 		--with-xpm-dir=/usr/include \
 	&& docker-php-ext-install gd \
@@ -35,4 +42,4 @@ RUN apk add --no-cache --virtual .build-deps \
 	)" \
    	&& apk add --no-cache --virtual .php-rundeps $runDeps \
 	\
-	&& apk del .build-deps
+	&& apk del .build-deps \
