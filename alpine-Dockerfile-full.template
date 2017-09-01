@@ -1,13 +1,4 @@
-<<<<<<< HEAD
-=======
-#
-# NOTE: THIS DOCKERFILE IS GENERATED VIA "update.sh"
-#
-# PLEASE DO NOT EDIT IT DIRECTLY.
-#
-
->>>>>>> 8f178ef3e9dcdc119dc0d2f591cc582f87ff1798
-FROM docker.jdsieci.pl/php-fpm:5.3.29-minimal
+FROM docker.jdsieci.pl/php-fpm:%%PHP_VERSION%%-minimal
 
 RUN apk add --no-cache --virtual .persistent-deps \
 		bzip2

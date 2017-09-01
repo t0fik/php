@@ -177,6 +177,9 @@ for version in "${versions[@]}"; do
 			"$version/$target/"
 		dockerfiles+=( "$version/$target/Dockerfile" )
 		scripts+=( "$version/$target/docker-php-source" )
+                [ -d "$version/$target/full" ] || continue
+                { generated_warning; cat $variantVariant-Dockerfile-full.template; } > "$version/$target/full/Dockerfile"
+		dockerfiles+=( "$version/$target/full/Dockerfile" )
 	done
 
 	(
